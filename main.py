@@ -1,168 +1,171 @@
 from abc import ABC, abstractmethod
-from typing import List
 import sqlite3
 
-
-# Абстрактний інтерфейс для оповіщення
-class OrderNotifier(ABC):
+class A(ABC):
     @abstractmethod
-    def notify(self, order: "Order") -> None:
+    def a(self, o):
         pass
 
+class B:
+    def __init__(self, x, y):
+        if not x:
+            raise ValueError("e")
+        if y <= 0:
+            raise ValueError("e")
+        self.x = x  # назва страви
+        self.y = y  # ціна
+        self.z = ""  # не використовується
+        self.c = ""  # не використовується
 
-# Клас для представлення страви
-class Strava:
-    def __init__(self, name: str, price: float):
-        if not name:
-            raise ValueError("Назва страви повинна бути непорожньою.")
-        if price <= 0:
-            raise ValueError("Ціна повинна бути більше 0.")
-        self.name = name
-        self.price = price
-        self.description = ""
-        self.category = ""
+    def s1(self, d):
+        self.z = d
 
-    def set_description(self, description: str):
-        self.description = description
+    def s2(self, c):
+        self.c = c
 
-    def set_category(self, category: str):
-        self.category = category
-
-    def get_price(self):
-        return self.price
+    def p(self):
+        return self.y
 
     def __str__(self):
-        return f"{self.name} - {self.price} грн"
+        return f"{self.x} - {self.y} грн"
 
-
-# Клас для представлення меню
-class Menu:
+class C:
     def __init__(self):
-        self.items: List[Strava] = []
-        self.counter = 0
+        self.i = []  # список страв
+        self.j = 0   # кількість
 
-    def add_strava(self, strava: Strava) -> None:
-        self.items.append(strava)
-        self.counter += 1
+    def f1(self, q):  # додати страву
+        self.i.append(q)
+        self.j += 1
 
-    def remove_strava(self, strava: Strava):
-        if strava in self.items:
-            self.items.remove(strava)
-            self.counter -= 1
+    def f2(self, q):  # прибрати страву
+        if q in self.i:
+            self.i.remove(q)
+            self.j -= 1
 
-    def get_menu_items(self):
-        return [str(strava) for strava in self.items]
+    def f3(self):  # повернути список у форматі рядків
+        return [str(r) for r in self.i]
 
-
-# Клас клієнта
-class Client:
-    def __init__(self, name: str):
-        self.name = name
-        self.orders = []
-
-    def place_order(self, order: "Order", database: "Database", kitchen_notifier: "KitchenNotifier") -> None:
-        database.add_order(order)
-        kitchen_notifier.notify(order)
-        self.orders.append(order)
-
-    def get_orders(self):
-        return self.orders
+    def __str__(self):
+        return "\n".join(str(item) for item in self.i)  # Виводить список страв
 
 
-# Замовлення
-class Order:
-    def __init__(self, client: "Client", items: List["Strava"]):
-        if client is None:
-            raise TypeError("Клієнт не може бути None")
-        self.client = client
-        self.items = items
-        self.options = []
-        self.status = "Очікується"
+class D:
+    def __init__(self, n):
+        self.n = n  # ім'я клієнта
+        self.o = []  # замовлення
 
-    def add_option(self, option: str) -> None:
-        self.options.append(option)
+    @property
+    def name(self):
+        return self.n
 
-    def set_status(self, status: str):
-        self.status = status
+    def g(self, o, d, k):
+        d.k(o)  # зберегти в БД
+        k.b(o)  # повідомити кухню
+        self.o.append(o)
+
+    def h(self):
+        return self.o
+
+class E:
+    def __init__(self, x, y):
+        if x is None:
+            raise TypeError("None")
+        self.a = x  # клієнт
+        self.b = y  # страви
+        self.c = []  # мітки (наприклад, special)
+        self.d = "Очікується"  # статус
+
+    @property
+    def client(self):
+        return self.a
+
+    @property
+    def items(self):
+        return self.b
+
+    def ao(self, op):
+        self.c.append(op)
+
+    def s(self, s):
+        self.d = s  # Оновлюємо статус
+
+    def g(self):
+        return self.d
 
     def get_status(self):
-        return self.status
+        return self.d
+
+    @property
+    def special(self):
+        return "special" in self.c
 
     def __str__(self):
-        item_list = ', '.join(f"{strava.name} ({strava.price} грн)" for strava in self.items)
-        return f"Замовлення для {self.client.name}: {item_list}"
+        return f"Замовлення для {self.a.n}: {', '.join(f'{i.x} ({i.y} грн)' for i in self.b)}"
 
 
-# Factory для створення замовлень
-class OrderFactory:
+class F:
     @staticmethod
-    def create_order(order_type: str, client, items):
-        if order_type == "normal":
-            return Order(client, items)
-        elif order_type == "special":
-            order = Order(client, items)
-            order.add_option("special")
-            return order
+    def f(t, c, i):
+        if t == "normal":
+            return E(c, i)
+        elif t == "special":
+            z = E(c, i)
+            z.ao("special")
+            return z
         else:
-            raise ValueError("Unknown order type")
+            raise ValueError("???")
 
+    build_order = f
 
-# Повідомлення для кухні
-class KitchenNotifier:
+class G:
     def __init__(self):
-        self.subscribers = []
-        self.logs = []
+        self.s = []
+        self.l = []
 
-    def subscribe(self, observer):
-        self.subscribers.append(observer)
-        self.logs.append(f"Subscribed: {observer}")
+    def a(self, o):
+        self.s.append(o)
+        self.l.append(f"Subscribed: {o}")
 
-    def unsubscribe(self, observer):
-        self.subscribers.remove(observer)
-        self.logs.append(f"Unsubscribed: {observer}")
+    def u(self, o):
+        self.s.remove(o)
+        self.l.append(f"Unsubscribed: {o}")
 
-    def notify(self, order):
-        for subscriber in self.subscribers:
-            subscriber.update(order)
-        self.logs.append(f"Order Notified: {order}")
+    def b(self, o):
+        for s in self.s:
+            s.up(o)
+        self.l.append(f"Order Notified: {o}")
 
+class H:
+    def up(self, o):
+        o.s("Готується")  # зміна статусу на "Готується"
+        print(f"Нове замовлення на кухні: {o}")
 
-# Кухня, яка отримує замовлення
-class Kitchen:
-    def update(self, order):
-        print(f"Нове замовлення на кухні: {order}")
-        order.set_status("Готується")
-
-
-class Database:
-    _instance = None
+class I:
+    _i = None
 
     def __new__(cls):
-        if cls._instance is None:
-            cls._instance = super(Database, cls).__new__(cls)
-            cls._instance.conn = sqlite3.connect("../orders.db")
-            cls._instance.cursor = cls._instance.conn.cursor()
-            cls._instance.create_table()
-        return cls._instance
+        if cls._i is None:
+            cls._i = super(I, cls).__new__(cls)
+            cls._i.a = sqlite3.connect(":memory:")
+            cls._i.b = cls._i.a.cursor()
+            cls._i.t()
+        return cls._i
 
-    def create_table(self):
-        """Створює таблицю, якщо вона ще не існує."""
-        self.cursor.execute("""
-            CREATE TABLE IF NOT EXISTS orders (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                client TEXT,
-                items TEXT
-            )
-        """)
-        self.conn.commit()
+    def t(self):
+        self.b.execute("""
+        CREATE TABLE IF NOT EXISTS orders (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            client TEXT,
+            items TEXT
+        )""")
+        self.a.commit()
 
-    def add_order(self, order):
-        """Додає замовлення в базу даних."""
-        items_str = ", ".join([f"{item.name} ({item.price} грн)" for item in order.items])
-        self.cursor.execute("INSERT INTO orders (client, items) VALUES (?, ?)", (order.client.name, items_str))
-        self.conn.commit()
+    def k(self, o):
+        z = ", ".join([f"{m.x} ({m.y} грн)" for m in o.b])
+        self.b.execute("INSERT INTO orders (client, items) VALUES (?, ?)", (o.a.n, z))
+        self.a.commit()
 
-    def get_orders(self):
-        """Отримує всі замовлення з бази."""
-        self.cursor.execute("SELECT client, items FROM orders")
-        return self.cursor.fetchall()
+    def j(self):
+        self.b.execute("SELECT client, items FROM orders")
+        return self.b.fetchall()
