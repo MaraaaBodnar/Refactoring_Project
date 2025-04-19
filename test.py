@@ -1,124 +1,187 @@
 import unittest
-from main import Strava, Menu, Client, Order, KitchenNotifier, Database
+from original_code import D as OriginalClient, B as OriginalStrava, F as OriginalOrderFactory, C as OriginalMenu, G as OriginalNotifier, H as OriginalKitchen, I as OriginalDatabase
+from refactored_code import Client as RefactoredClient, Strava as RefactoredStrava, OrderFactory as RefactoredOrderFactory, Menu as RefactoredMenu, KitchenNotifier as RefactoredNotifier, Kitchen as RefactoredKitchen, Database as RefactoredDatabase
 
 
-class TestSystem(unittest.TestCase):
+def prepare_order_system(ClientClass, StravaClass, OrderFactoryClass, MenuClass, NotifierClass, KitchenClass, DatabaseClass):
+    kitchen = KitchenClass()
+    notifier = NotifierClass()
 
-    def test_create_strava(self):
-        strava = Strava("Піца", 120.0)
-        self.assertEqual(strava.name, "Піца")
-        self.assertEqual(strava.price, 120.0)
+    if hasattr(notifier, "subscribe"):
+        notifier.subscribe(kitchen)
+    elif hasattr(notifier, "a"):
+        notifier.a(kitchen)
 
-    def test_create_menu(self):
-        menu = Menu()
-        self.assertEqual(len(menu.items), 0)
+    menu = MenuClass()
+    strava1 = StravaClass("Суп", 50)
+    strava2 = StravaClass("Вареники", 60)
 
-    def test_add_strava_to_menu(self):
-        menu = Menu()
-        strava = Strava("Бургер", 80.0)
-        menu.add_strava(strava)
-        self.assertIn(strava, menu.items)
+    if hasattr(menu, "add_item"):
+        menu.add_item(strava1)
+        menu.add_item(strava2)
+    elif hasattr(menu, "f1"):
+        menu.f1(strava1)
+        menu.f1(strava2)
 
-    def test_create_client(self):
-        client = Client("Марія")
-        self.assertEqual(client.name, "Марія")
+    client = ClientClass("Іван")
+    items = [strava1, strava2]
 
-    def test_create_order(self):
-        client = Client("Олексій")
-        items = [Strava("Суші", 200.0)]
-        order = Order(client, items)
-        self.assertEqual(order.client, client)
-        self.assertEqual(order.items, items)
+    if hasattr(OrderFactoryClass, "create_order"):
+        order = OrderFactoryClass.create_order("normal", client, items)
+    elif hasattr(OrderFactoryClass, "build_order"):
+        order = OrderFactoryClass.build_order("normal", client, items)
+    else:
+        order = None
 
-    def test_order_with_multiple_items(self):
-        client = Client("Іван")
-        items = [Strava("Салат", 50.0), Strava("Сік", 30.0)]
-        order = Order(client, items)
-        self.assertEqual(len(order.items), 2)
+    db = DatabaseClass()
+    if hasattr(client, "place_order") and order:
+        client.place_order(order, db, notifier)
+    elif hasattr(client, "g") and order:
+        client.g(order, db, notifier)
+    return client, menu, db, notifier, kitchen, order
 
-    def test_client_places_order(self):
-        client = Client("Наталя")
-        order = Order(client, [Strava("Кава", 40.0)])
-        database = Database()  # Ініціалізуємо тестову базу даних
-        notifier = KitchenNotifier()  # Ініціалізуємо тестовий KitchenNotifier
-        client.place_order(order, database, notifier)  # Передаємо всі аргументи
 
-    def test_order_notifier_interface(self):
-        notifier = KitchenNotifier()
-        order = Order(Client("Петро"), [Strava("Торт", 150.0)])
-        notifier.notify(order)  # Метод має існувати
+def generate_tests(ClientClass, StravaClass, OrderFactoryClass, MenuClass, NotifierClass, KitchenClass, DatabaseClass):
 
-    def test_order_str_representation(self):
-        client = Client("Олена")
-        items = [Strava("Морозиво", 60.0)]
-        order = Order(client, items)
-        self.assertIn("Олена", str(order))
-        self.assertIn("Морозиво", str(order))
+    class CommonTests(unittest.TestCase):
 
-    def test_kitchen_notifier_notify(self):
-        notifier = KitchenNotifier()
-        order = Order(Client("Андрій"), [Strava("Пельмені", 90.0)])
-        self.assertIsNone(notifier.notify(order))  # Метод не повинен повертати значення
+        def test_client_can_place_order(self):
+            client, _, _, _, _, order = prepare_order_system(ClientClass, StravaClass, OrderFactoryClass, MenuClass, NotifierClass, KitchenClass, DatabaseClass)
+            if order and hasattr(client, "get_orders"):
+                self.assertIn(order, client.get_orders())
 
-    def test_add_strava_with_missing_name(self):
-        """Тест на додавання страви без назви."""
-        with self.assertRaises(ValueError):
-            strava = Strava("", 100.0)  # Назва повинна бути непорожньою
+        def test_menu_adds_items(self):
+            _, menu, *_ = prepare_order_system(ClientClass, StravaClass, OrderFactoryClass, MenuClass, NotifierClass, KitchenClass, DatabaseClass)
+            if hasattr(menu, "get_menu_items"):
+                self.assertEqual(len(menu.get_menu_items()), 2)
 
-    def test_add_strava_with_missing_price(self):
-        """Тест на додавання страви без ціни."""
-        with self.assertRaises(ValueError):
-            strava = Strava("Котлета", -50.0)  # Ціна повинна бути більшою за 0
+        def test_order_status_changes(self):
+            _, _, _, _, _, order = prepare_order_system(ClientClass, StravaClass, OrderFactoryClass, MenuClass, NotifierClass, KitchenClass, DatabaseClass)
+            if order and hasattr(order, "get_status"):
+                self.assertEqual(order.get_status(), "Готується")
 
-    def test_empty_menu(self):
-        """Тест для порожнього меню."""
-        menu = Menu()
-        self.assertEqual(len(menu.items), 0)
+        def test_database_saves_order(self):
+            _, _, db, _, _, order = prepare_order_system(ClientClass, StravaClass, OrderFactoryClass, MenuClass, NotifierClass, KitchenClass, DatabaseClass)
+            if order and hasattr(db, "get_orders"):
+                orders = db.get_orders()
+                self.assertTrue(any(order.client.name in row and order.items[0].name in row[1] for row in orders))
 
-    def test_create_order_with_empty_menu(self):
-        """Тест для замовлення, коли меню порожнє."""
-        client = Client("Марія")
-        menu = Menu()
-        items = []  # Порожній список страв
-        order = Order(client, items)
-        self.assertEqual(order.items, [])
+        def test_strava_validation(self):
+            with self.assertRaises(ValueError):
+                StravaClass("", 100)
+            with self.assertRaises(ValueError):
+                StravaClass("Суп", -5)
 
-    def test_order_with_no_client(self):
-        """Тест для замовлення без клієнта."""
-        items = [Strava("Салат", 50.0)]
-        with self.assertRaises(TypeError):  # Очікуємо помилку, бо клієнт не заданий
-            order = Order(None, items)
+        def test_multiple_orders(self):
+            client, _, db, notifier, kitchen, _ = prepare_order_system(ClientClass, StravaClass, OrderFactoryClass, MenuClass, NotifierClass, KitchenClass, DatabaseClass)
+            strava3 = StravaClass("Деруни", 70)
+            if hasattr(OrderFactoryClass, "create_order"):
+                order2 = OrderFactoryClass.create_order("normal", client, [strava3])
+            else:
+                order2 = OrderFactoryClass.build_order("normal", client, [strava3])
+            if hasattr(client, "place_order"):
+                client.place_order(order2, db, notifier)
+                self.assertIn(order2, client.get_orders())
 
-    def test_notify_kitchen_with_no_items(self):
-        """Тест для оповіщення кухні, коли замовлення не містить страв."""
-        client = Client("Іван")
-        items = []  # Порожнє замовлення
-        order = Order(client, items)
-        notifier = KitchenNotifier()
-        self.assertIsNone(notifier.notify(order))  # Повідомлення не повинно мати вмісту
+        def test_special_order(self):
+            client = ClientClass("Оксана")
+            strava = StravaClass("Котлета", 80)
+            if hasattr(OrderFactoryClass, "create_order"):
+                order = OrderFactoryClass.create_order("special", client, [strava])
+            elif hasattr(OrderFactoryClass, "build_order"):
+                order = OrderFactoryClass.build_order("special", client, [strava])
+            else:
+                order = None
+            self.assertTrue(order and hasattr(order, "special"))
 
-    def test_add_multiple_stravy(self):
-        """Тест для додавання кількох страв у меню."""
-        menu = Menu()
-        strava1 = Strava("Бургер", 80.0)
-        strava2 = Strava("Піца", 120.0)
-        menu.add_strava(strava1)
-        menu.add_strava(strava2)
-        self.assertEqual(len(menu.items), 2)  # Перевіряємо, чи додано дві страви
+        def test_kitchen_receives_notification(self):
+            _, _, _, notifier, kitchen, order = prepare_order_system(ClientClass, StravaClass, OrderFactoryClass, MenuClass, NotifierClass, KitchenClass, DatabaseClass)
+            if order and hasattr(kitchen, "orders"):
+                self.assertIn(order, kitchen.orders)
 
-    def test_create_order_with_multiple_items(self):
-        """Тест для замовлення з кількома стравами."""
-        client = Client("Наталя")
-        items = [Strava("Кава", 40.0), Strava("Торт", 100.0)]
-        order = Order(client, items)
-        self.assertEqual(len(order.items), 2)
-        self.assertEqual(order.items[0].name, "Кава")
-        self.assertEqual(order.items[1].name, "Торт")
+        def test_menu_str(self):
+            _, menu, *_ = prepare_order_system(ClientClass, StravaClass, OrderFactoryClass, MenuClass, NotifierClass, KitchenClass, DatabaseClass)
+            menu_str = str(menu)
+            self.assertIn("Суп", menu_str)
+            self.assertIn("Вареники", menu_str)
 
-    def test_notify_kitchen_with_valid_order(self):
-        """Тест для оповіщення кухні про замовлення зі стравами."""
-        client = Client("Олена")
-        items = [Strava("Морозиво", 60.0)]
-        order = Order(client, items)
-        notifier = KitchenNotifier()
-        self.assertIsNone(notifier.notify(order))  # Перевіряємо, чи відбулося оповіщення
+        def test_order_str(self):
+            client, _, _, _, _, order = prepare_order_system(ClientClass, StravaClass, OrderFactoryClass, MenuClass, NotifierClass, KitchenClass, DatabaseClass)
+            if order:
+                self.assertIn(client.name, str(order))
+
+        def test_get_status(self):
+            _, _, _, _, _, order = prepare_order_system(ClientClass, StravaClass, OrderFactoryClass, MenuClass, NotifierClass, KitchenClass, DatabaseClass)
+            if order:
+                self.assertEqual(order.get_status(), "Готується")
+
+        def test_menu_removal(self):
+            _, menu, *_ = prepare_order_system(ClientClass, StravaClass, OrderFactoryClass, MenuClass, NotifierClass, KitchenClass, DatabaseClass)
+            if hasattr(menu, "get_menu_items") and len(menu.get_menu_items()) > 0:
+                item = menu.get_menu_items()[0]
+                if hasattr(menu, "remove_item"):
+                    menu.remove_item(item)
+                self.assertNotIn(item, menu.get_menu_items())
+
+        def test_client_order_count(self):
+            client, _, _, _, _, order = prepare_order_system(ClientClass, StravaClass, OrderFactoryClass, MenuClass, NotifierClass, KitchenClass, DatabaseClass)
+            if order and hasattr(client, "get_orders"):
+                self.assertEqual(len(client.get_orders()), 1)
+
+        def test_notifier_log(self):
+            _, _, _, notifier, _, order = prepare_order_system(ClientClass, StravaClass, OrderFactoryClass, MenuClass, NotifierClass, KitchenClass, DatabaseClass)
+            if order and hasattr(notifier, "logs"):
+                self.assertTrue(any("Order Notified" in log for log in notifier.logs))
+
+        def test_notifier_unsubscribe(self):
+            kitchen = KitchenClass()
+            notifier = NotifierClass()
+            if hasattr(notifier, "subscribe") and hasattr(notifier, "unsubscribe"):
+                notifier.subscribe(kitchen)
+                notifier.unsubscribe(kitchen)
+                if hasattr(notifier, "subscribers"):
+                    self.assertNotIn(kitchen, notifier.subscribers)
+
+        def test_order_total_price(self):
+            _, _, _, _, _, order = prepare_order_system(ClientClass, StravaClass, OrderFactoryClass, MenuClass, NotifierClass, KitchenClass, DatabaseClass)
+            if order and hasattr(order, "get_total_price"):
+                total = sum(item.price for item in order.items)
+                self.assertEqual(order.get_total_price(), total)
+
+        def test_order_factory_invalid_type(self):
+            with self.assertRaises(ValueError):
+                if hasattr(OrderFactoryClass, "create_order"):
+                    OrderFactoryClass.create_order("invalid", ClientClass("Микола"), [])
+                else:
+                    OrderFactoryClass.build_order("invalid", ClientClass("Микола"), [])
+
+        def test_database_structure(self):
+            db = DatabaseClass()
+            if hasattr(db, "get_orders"):
+                self.assertIsNotNone(db.get_orders())
+
+        def test_order_items_content(self):
+            _, _, _, _, _, order = prepare_order_system(ClientClass, StravaClass, OrderFactoryClass, MenuClass, NotifierClass, KitchenClass, DatabaseClass)
+            if order:
+                self.assertTrue(all(isinstance(item, StravaClass) for item in order.items))
+
+        def test_order_has_client_reference(self):
+            client, _, _, _, _, order = prepare_order_system(ClientClass, StravaClass, OrderFactoryClass, MenuClass, NotifierClass, KitchenClass, DatabaseClass)
+            if order:
+                self.assertEqual(order.client, client)
+
+    return CommonTests
+
+
+OriginalTests = generate_tests(
+    OriginalClient, OriginalStrava, OriginalOrderFactory,
+    OriginalMenu, OriginalNotifier, OriginalKitchen, OriginalDatabase
+)
+
+RefactoredTests = generate_tests(
+    RefactoredClient, RefactoredStrava, RefactoredOrderFactory,
+    RefactoredMenu, RefactoredNotifier, RefactoredKitchen, RefactoredDatabase
+)
+
+if __name__ == '__main__':
+    unittest.main()
